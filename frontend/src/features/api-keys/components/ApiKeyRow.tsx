@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, Loader2, Copy, Check } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +12,6 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import type { ApiKey } from "@/types";
 import { useDeleteApiKey } from "@/features/api-keys/hooks/useDeleteApiKey";
-import { useClipboard } from "@/hooks/useClipboard";
 
 interface ApiKeyRowProps {
   apiKey: ApiKey;
@@ -41,7 +40,6 @@ function formatRelativeTime(dateStr: string | null): string {
 export function ApiKeyRow({ apiKey }: ApiKeyRowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const deleteMutation = useDeleteApiKey();
-  const { copy, hasCopied } = useClipboard();
 
   function handleDelete() {
     deleteMutation.mutate(apiKey.id, {
@@ -54,24 +52,9 @@ export function ApiKeyRow({ apiKey }: ApiKeyRowProps) {
       <TableRow className="transition-colors hover:bg-muted/50">
         <TableCell className="font-medium">{apiKey.name}</TableCell>
         <TableCell>
-          <div className="flex items-center gap-1.5">
-            <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
-              {apiKey.key_prefix}...
-            </code>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => copy(apiKey.key_prefix)}
-              aria-label="Copy key prefix"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {hasCopied ? (
-                <Check className="size-3 text-green-600" />
-              ) : (
-                <Copy className="size-3" />
-              )}
-            </Button>
-          </div>
+          <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+            {apiKey.key_prefix}...
+          </code>
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
           {formatRelativeTime(apiKey.last_used_at)}

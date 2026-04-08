@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,8 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import type { ApiKey } from "@/types";
 import { useDeleteApiKey } from "@/features/api-keys/hooks/useDeleteApiKey";
+import { revealKey } from "@/api/apiKeysApi";
+import { getErrorMessage } from "@/lib/errors";
 
 interface ApiKeyRowProps {
   apiKey: ApiKey;
@@ -39,7 +42,24 @@ function formatRelativeTime(dateStr: string | null): string {
 
 export function ApiKeyRow({ apiKey }: ApiKeyRowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
   const deleteMutation = useDeleteApiKey();
+
+  async function handleCopy() {
+    setIsCopying(true);
+    try {
+      const { key } = await revealKey(apiKey.id);
+      await navigator.clipboard.writeText(key);
+      setHasCopied(true);
+      toast.success("Copied to clipboard");
+      setTimeout(() => setHasCopied(false), 2000);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsCopying(false);
+    }
+  }
 
   function handleDelete() {
     deleteMutation.mutate(apiKey.id, {
@@ -52,9 +72,27 @@ export function ApiKeyRow({ apiKey }: ApiKeyRowProps) {
       <TableRow className="transition-colors hover:bg-muted/50">
         <TableCell className="font-medium">{apiKey.name}</TableCell>
         <TableCell>
-          <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
-            {apiKey.key_prefix}...
-          </code>
+          <div className="flex items-center gap-1.5">
+            <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+              {apiKey.key_prefix}...
+            </code>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleCopy}
+              disabled={isCopying}
+              aria-label="Copy full API key"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {isCopying ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : hasCopied ? (
+                <Check className="size-3 text-green-600" />
+              ) : (
+                <Copy className="size-3" />
+              )}
+            </Button>
+          </div>
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
           {formatRelativeTime(apiKey.last_used_at)}

@@ -52,3 +52,9 @@ class ApiKeysListResponse(BaseModel):
     """GET /api-keys response envelope."""
 
     api_keys: list[ApiKeyListItem]
+
+
+class ApiKeyRevealResponse(BaseModel):
+    """GET /api-keys/{id}/reveal — returns the full decrypted key."""
+
+    key: str

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api_keys.schemas import (
     ApiKeyCreatedResponse,
+    ApiKeyRevealResponse,
     ApiKeysListResponse,
     ApiKeyListItem,
     CreateApiKeyRequest,
@@ -70,6 +71,21 @@ async def list_api_keys(
             for k in keys
         ]
     )
+
+
+@router.get("/{key_id}/reveal", response_model=ApiKeyRevealResponse)
+async def reveal_api_key(
+    key_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ApiKeyRevealResponse:
+    """Return the full decrypted API key for copying."""
+    raw_key = await ApiKeyService.reveal_key(
+        user_id=current_user.id,
+        key_id=key_id,
+        db=db,
+    )
+    return ApiKeyRevealResponse(key=raw_key)
 
 
 @router.delete("/{key_id}", response_model=MessageResponse)

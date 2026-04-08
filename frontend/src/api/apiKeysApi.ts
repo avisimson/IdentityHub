@@ -21,6 +21,11 @@ export async function listKeys(): Promise<ApiKeysListResponse> {
   return data;
 }
 
+export async function revealKey(keyId: string): Promise<{ key: string }> {
+  const { data } = await api.get<{ key: string }>(`/api-keys/${keyId}/reveal`);
+  return data;
+}
+
 export async function deleteKey(
   keyId: string,
 ): Promise<{ detail: string }> {

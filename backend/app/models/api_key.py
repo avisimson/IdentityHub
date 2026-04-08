@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, String, text
+from sqlalchemy import Boolean, ForeignKey, LargeBinary, String, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +27,9 @@ class ApiKey(Base):
         String(64), unique=True, nullable=False, index=True
     )
     key_prefix: Mapped[str] = mapped_column(String(16), nullable=False)
+    encrypted_key: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )

@@ -19,6 +19,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.jira.encryption import encrypt_token, decrypt_token
 from app.models.api_key import ApiKey
 from app.models.user import User
 
@@ -59,6 +60,7 @@ class ApiKeyService:
             name=name,
             key_hash=key_hash,
             key_prefix=key_prefix,
+            encrypted_key=encrypt_token(raw_key),
         )
         db.add(api_key)
         await db.commit()
@@ -109,6 +111,36 @@ class ApiKeyService:
 
         api_key.is_active = False
         await db.commit()
+
+    @staticmethod
+    async def reveal_key(
+        user_id: uuid.UUID,
+        key_id: uuid.UUID,
+        db: AsyncSession,
+    ) -> str:
+        """Decrypt and return the full raw API key."""
+        result = await db.execute(
+            select(ApiKey).where(
+                ApiKey.id == key_id,
+                ApiKey.user_id == user_id,
+                ApiKey.is_active.is_(True),
+            )
+        )
+        api_key = result.scalar_one_or_none()
+
+        if api_key is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found",
+            )
+
+        if api_key.encrypted_key is None:
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Full key is not available for keys created before this feature",
+            )
+
+        return decrypt_token(api_key.encrypted_key)
 
     @staticmethod
     async def validate_api_key(

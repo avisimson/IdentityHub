@@ -325,3 +325,47 @@ class TestDisconnect:
             select(JiraConnection).where(JiraConnection.user_id == user.id)
         )
         assert result.scalar_one_or_none() is None
+
+    async def test_disconnect_deletes_connection_with_tickets(self, db_session, test_user):
+        """Disconnecting must also remove associated tickets (FK integrity)."""
+        user = await test_user()
+        conn = JiraConnection(
+            user_id=user.id,
+            cloud_id="c",
+            site_url="https://x.atlassian.net",
+            access_token_enc=_fernet.encrypt(b"a"),
+            refresh_token_enc=_fernet.encrypt(b"r"),
+            token_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        db_session.add(conn)
+        await db_session.flush()
+
+        ticket = Ticket(
+            user_id=user.id,
+            jira_connection_id=conn.id,
+            jira_ticket_key="PROJ-1",
+            jira_ticket_url="https://x.atlassian.net/browse/PROJ-1",
+            project_key="PROJ",
+            summary="Test ticket",
+            source="manual",
+        )
+        db_session.add(ticket)
+        await db_session.commit()
+
+        await JiraService.disconnect(str(user.id), db_session)
+
+        from sqlalchemy import select
+        conn_result = await db_session.execute(
+            select(JiraConnection).where(JiraConnection.user_id == user.id)
+        )
+        assert conn_result.scalar_one_or_none() is None
+
+        ticket_result = await db_session.execute(
+            select(Ticket).where(Ticket.user_id == user.id)
+        )
+        assert ticket_result.scalar_one_or_none() is None
+
+    async def test_disconnect_noop_when_not_connected(self, db_session, test_user):
+        """Disconnecting a user with no connection should not raise."""
+        user = await test_user()
+        await JiraService.disconnect(str(user.id), db_session)

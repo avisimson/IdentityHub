@@ -122,7 +122,14 @@ async def delete_connection(
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
     """Disconnect the current user's Jira account."""
-    await JiraService.disconnect(str(current_user.id), db)
+    try:
+        await JiraService.disconnect(str(current_user.id), db)
+    except Exception:
+        logger.exception("Failed to disconnect Jira for user %s", current_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to disconnect Jira. Please try again.",
+        )
     return MessageResponse(detail="Jira connection removed")
 
 

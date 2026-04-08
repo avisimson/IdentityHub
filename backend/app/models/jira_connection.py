@@ -43,4 +43,10 @@ class JiraConnection(Base):
 
     # -- Relationships --
     user = relationship("User", back_populates="jira_connection")
-    tickets = relationship("Ticket", back_populates="jira_connection", lazy="selectin")
+    tickets = relationship(
+        "Ticket",
+        back_populates="jira_connection",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

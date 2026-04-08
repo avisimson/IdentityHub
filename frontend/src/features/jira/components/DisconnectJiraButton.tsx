@@ -25,8 +25,8 @@ export function DisconnectJiraButton() {
     setIsLoading(true);
     try {
       await disconnect();
+      queryClient.removeQueries({ queryKey: ["jira"] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.jira.status });
-      queryClient.removeQueries({ queryKey: queryKeys.jira.projects });
       toast.success("Jira disconnected successfully");
       setOpen(false);
     } catch (error) {

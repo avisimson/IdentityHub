@@ -350,16 +350,24 @@ class JiraService:
 
     @staticmethod
     async def disconnect(user_id: str, db: AsyncSession) -> None:
-        """Delete the user's Jira connection row."""
+        """Delete the user's Jira connection and all associated tickets."""
+        uid = uuid.UUID(user_id)
         result = await db.execute(
-            select(JiraConnection).where(
-                JiraConnection.user_id == uuid.UUID(user_id)
-            )
+            select(JiraConnection).where(JiraConnection.user_id == uid)
         )
         connection = result.scalar_one_or_none()
-        if connection is not None:
-            await db.delete(connection)
-            await db.commit()
+        if connection is None:
+            return
+
+        # Delete tickets that reference this connection first to avoid FK violations.
+        ticket_result = await db.execute(
+            select(Ticket).where(Ticket.jira_connection_id == connection.id)
+        )
+        for ticket in ticket_result.scalars().all():
+            await db.delete(ticket)
+
+        await db.delete(connection)
+        await db.commit()
 
     # ------------------------------------------------------------------
     # 9. _refresh_token  (private)

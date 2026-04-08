@@ -24,7 +24,7 @@ class Ticket(Base):
     )
     jira_connection_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jira_connections.id"),
+        ForeignKey("jira_connections.id", ondelete="CASCADE"),
         nullable=False,
     )
     jira_ticket_key: Mapped[str] = mapped_column(String(50), nullable=False)
